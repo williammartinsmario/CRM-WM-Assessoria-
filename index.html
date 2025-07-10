@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>CRM WM Assessoria</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="main.js"></script>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="WM Assessoria" class="logo" />
+    <h1>CRM WM Assessoria</h1>
+    <div class="top-actions">
+      <input type="file" id="fileInput" accept=".csv,.xlsx" />
+      <textarea id="pasteInput" placeholder="Cole nome e número aqui..."></textarea>
+      <button id="importButton">Importar</button>
+    </div>
+  </header>
+  <main id="kanban">
+    <div class="column" data-name="Novo"><h2>Novo</h2><div class="lead-list"></div><button class="backup-btn">Backup</button></div>
+    <div class="column" data-name="Em Atendimento"><h2>Em Atendimento</h2><div class="lead-list"></div><button class="backup-btn">Backup</button></div>
+    <div class="column" data-name="Carteira de Clientes"><h2>Carteira de Clientes</h2><div class="lead-list"></div><button class="backup-btn">Backup</button></div>
+  </main>
+  <div class="lead-counter">📞 Ligações hoje: <span id="callCount">0</span></div>
+  <template id="lead-template">
+    <div class="lead-card">
+      <strong class="lead-name">Nome</strong>
+      <div class="lead-phone">Número</div>
+      <textarea placeholder="Observações..."></textarea>
+      <input type="date" class="birthday-input" />
+      <div class="actions">
+        <button class="whatsapp-btn">WhatsApp</button>
+        <button class="schedule-btn">Agendar</button>
+        <button class="delete-btn">Excluir</button>
+      </div>
+    </div>
+  </template>
+  <footer><p>WM Assessoria ©</p></footer>
+</body>
+</html>

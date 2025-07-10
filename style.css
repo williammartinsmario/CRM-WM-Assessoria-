@@ -1,0 +1,10 @@
+
+body { font-family: sans-serif; margin: 0; background: #f7f7f7; }
+header { background: #222; color: #fff; padding: 10px; text-align: center; }
+.logo { height: 40px; vertical-align: middle; }
+main { display: flex; gap: 10px; padding: 10px; overflow-x: auto; }
+.column { background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #ccc; min-width: 280px; flex: 1; }
+.lead-card { background: #eef; padding: 5px; margin: 5px 0; border-radius: 4px; }
+footer { background: #222; color: #fff; text-align: center; padding: 10px; }
+textarea, input { width: 100%; margin: 4px 0; }
+.actions button { margin-right: 4px; }
