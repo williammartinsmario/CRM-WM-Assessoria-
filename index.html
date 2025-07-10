@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>CRM WM – Corrigido e Visível</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f6f9; }
+    h1 { color: #003366; }
+    .btn { padding: 6px 12px; margin: 4px; border: none; border-radius: 6px; background: #003366; color: white; cursor: pointer; }
+    .btn:hover { background: #00509e; }
+    .column { float: left; width: 18%; margin-right: 2%; background: #fff; padding: 10px; border-radius: 6px; min-height: 300px; box-shadow: 0 0 4px rgba(0,0,0,0.1); }
+    .card { background: #f9f9f9; margin: 6px 0; padding: 8px; border-radius: 4px; box-shadow: 0 0 2px rgba(0,0,0,0.1); }
+    .clearfix::after { content: ""; clear: both; display: table; }
+    #contador { margin-top: 10px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+    th, td { padding: 6px; border: 1px solid #ccc; text-align: left; font-size: 14px; }
+    th { background: #003366; color: white; }
+  </style>
+</head>
+<body>
+
+<h1>CRM WM Unificado – Kanban + Backup + Histórico</h1>
+
+<div>
+  <input type="file" id="fileInput" accept=".csv" class="btn" onchange="handleFile(event)">
+  <button class="btn" onclick="mostrarColagem()">📋 Colar Contatos</button>
+  <div id="areaColagem" style="display:none; margin-top:10px;">
+    <textarea id="colagem" rows="6" style="width:100%;"></textarea><br>
+    <button class="btn" onclick="importarColados()">✅ Importar Colados</button>
+  </div>
+
+  <button class="btn" onclick="exportarCSV()">📤 Exportar Todos (CSV)</button>
+  
+</div>
+
+<div id="contador">📊 Ligações feitas hoje: 0</div>
+
+<div class="clearfix" id="kanban">
+  <div class="column" id="novo"><h3><button class="btn" onclick="exportarPorStatus('novo')">💾</button> 📥 Novo</h3></div>
+  <div class="column" id="atendimento"><h3><button class="btn" onclick="exportarPorStatus('atendimento')">💾</button> 📞 Atendimento</h3></div>
+  <div class="column" id="aguardando"><h3><button class="btn" onclick="exportarPorStatus('aguardando')">💾</button> ⏳ Aguardando</h3></div>
+  <div class="column" id="fechado"><h3><button class="btn" onclick="exportarPorStatus('fechado')">💾</button> ✅ Fechado</h3></div>
+  <div class="column" id="descartado"><h3><button class="btn" onclick="exportarPorStatus('descartado')">💾</button> ❌ Descartado</h3></div>
+</div>
+
+<h2 style="margin-top:60px;">📞 Histórico de Ligações</h2>
+<table id="historico">
+  <thead>
+    <tr><th>Nome</th><th>Número</th><th>Data/Hora</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js">
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines = e.target.result.split('\n');
+    lines.forEach(l => {
+      const [nome, numero] = l.split(',');
+      if (nome && numero) leads.push({ nome: nome.trim(), numero: numero.trim(), status: "novo" });
+    });
+    salvarLeads();
+    renderKanban();
+  };
+  reader.readAsText(file);
+}
+
+function mostrarColagem() {
+  document.getElementById("areaColagem").style.display = "block";
+}
+
+function importarColados() {
+  const texto = document.getElementById("colagem").value;
+  const linhas = texto.split('\n');
+  linhas.forEach(l => {
+    const partes = l.split(/[;,\t]/);
+    let nome = "", numero = "";
+    partes.forEach(p => {
+      const val = p.trim();
+      if (/\d{8,}/.test(val)) numero = val.replace(/\D/g, '');
+      else if (val.length > 2) nome = val;
+    });
+    if (nome && numero) leads.push({ nome, numero, status: "novo" });
+  });
+  salvarLeads();
+  renderKanban();
+  document.getElementById("areaColagem").style.display = "none";
+}
+</script>
+<script>
+const STORAGE_KEY = "leadsKanban";
+const CALL_KEY = "callCounter";
+const HIST_KEY = "callHistory";
+let leads = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+function hojeISO() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function salvarLeads() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+}
+
+function incrementarContador(nome, numero) {
+  const saved = JSON.parse(localStorage.getItem(CALL_KEY) || '{ "date": "", "count": 0 }');
+  if (saved.date !== hojeISO()) { saved.date = hojeISO(); saved.count = 0; }
+  saved.count++;
+  localStorage.setItem(CALL_KEY, JSON.stringify(saved));
+  document.getElementById("contador").textContent = "📊 Ligações feitas hoje: " + saved.count;
+
+  const hist = JSON.parse(localStorage.getItem(HIST_KEY) || "[]");
+  hist.push({ nome, numero, hora: new Date().toLocaleString() });
+  localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+  renderHistorico();
+}
+
+function carregarContador() {
+  const saved = JSON.parse(localStorage.getItem(CALL_KEY) || '{ "date": "", "count": 0 }');
+  if (saved.date !== hojeISO()) saved.count = 0;
+  document.getElementById("contador").textContent = "📊 Ligações feitas hoje: " + saved.count;
+}
+
+function renderKanban() {
+  ["novo", "atendimento", "aguardando", "fechado", "descartado"].forEach(status => {
+    const col = document.getElementById(status);
+    col.innerHTML = "<h3>" + col.querySelector("h3").textContent + "</h3>";
+    leads.filter(l => l.status === status).forEach(l => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.nome = l.nome;
+      card.innerHTML = `
+        <strong>${l.nome}</strong><br>${l.numero}<br>
+        <button onclick="incrementarContador('${l.nome}', '${l.numero}')">📞</button>
+        <button onclick="window.open('https://wa.me/55${l.numero}','_blank')">💬</button>
+      `;
+      col.appendChild(card);
+    });
+    new Sortable(col, {
+      group: "kanban",
+      animation: 150,
+      onEnd: e => {
+        const nome = e.item.dataset.nome;
+        const novoStatus = e.to.id;
+        const lead = leads.find(x => x.nome === nome);
+        if (lead) { lead.status = novoStatus; salvarLeads(); }
+      }
+    });
+  });
+}
+
+function exportarCSV() {
+  const header = "Nome,Número,Status\n";
+  const rows = leads.map(l => `${l.nome},${l.numero},${l.status}`).join("\n");
+  const blob = new Blob([header + rows], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "leads_completo_" + hojeISO() + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportarPorStatus(status) {
+  const filtrados = leads.filter(l => l.status === status);
+  const blob = new Blob([JSON.stringify(filtrados, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "leads_" + status + "_" + hojeISO() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function renderHistorico() {
+  const hist = JSON.parse(localStorage.getItem(HIST_KEY) || "[]");
+  const corpo = document.querySelector("#historico tbody");
+  corpo.innerHTML = hist.map(h => `<tr><td>${h.nome}</td><td>${h.numero}</td><td>${h.hora}</td></tr>`).join("");
+}
+
+carregarContador();
+renderKanban();
+renderHistorico();
+
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines = e.target.result.split('\n');
+    lines.forEach(l => {
+      const [nome, numero] = l.split(',');
+      if (nome && numero) leads.push({ nome: nome.trim(), numero: numero.trim(), status: "novo" });
+    });
+    salvarLeads();
+    renderKanban();
+  };
+  reader.readAsText(file);
+}
+
+function mostrarColagem() {
+  document.getElementById("areaColagem").style.display = "block";
+}
+
+function importarColados() {
+  const texto = document.getElementById("colagem").value;
+  const linhas = texto.split('\n');
+  linhas.forEach(l => {
+    const partes = l.split(/[;,\t]/);
+    let nome = "", numero = "";
+    partes.forEach(p => {
+      const val = p.trim();
+      if (/\d{8,}/.test(val)) numero = val.replace(/\D/g, '');
+      else if (val.length > 2) nome = val;
+    });
+    if (nome && numero) leads.push({ nome, numero, status: "novo" });
+  });
+  salvarLeads();
+  renderKanban();
+  document.getElementById("areaColagem").style.display = "none";
+}
+</script>
+
+</body>
+</html>
