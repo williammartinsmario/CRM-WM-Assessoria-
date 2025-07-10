@@ -1,0 +1,8 @@
+
+body { font-family: Arial; margin: 0; }
+header, footer { background: #222; color: #fff; text-align: center; padding: 10px; }
+.logo { height: 40px; }
+main { display: flex; gap: 10px; padding: 10px; overflow-x: auto; }
+.column { background: #eee; padding: 10px; min-width: 300px; border-radius: 8px; }
+.card { background: #fff; border: 1px solid #ccc; padding: 8px; margin: 6px 0; border-radius: 5px; }
+.acoes button { margin: 3px; }
