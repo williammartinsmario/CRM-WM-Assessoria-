@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>CRM WM Unificado</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f6f9; }
+    h1 { color: #003366; }
+    .btn { padding: 6px 12px; margin: 4px; border: none; border-radius: 6px; background: #003366; color: white; cursor: pointer; }
+    .btn:hover { background: #00509e; }
+    .column { float: left; width: 18%; margin-right: 2%; background: #fff; padding: 10px; border-radius: 6px; min-height: 300px; box-shadow: 0 0 4px rgba(0,0,0,0.1); }
+    .card { background: #f9f9f9; margin: 6px 0; padding: 8px; border-radius: 4px; box-shadow: 0 0 2px rgba(0,0,0,0.1); }
+    .clearfix::after { content: ""; clear: both; display: table; }
+    #contador { margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>CRM WM Unificado – Kanban + Backup + Contador</h1>
+
+<div>
+  <button class="btn" onclick="exportarPorStatus('novo')">💾 Backup – Novo</button>
+  <button class="btn" onclick="exportarPorStatus('atendimento')">💾 Backup – Atendimento</button>
+  <button class="btn" onclick="exportarPorStatus('aguardando')">💾 Backup – Aguardando</button>
+  <button class="btn" onclick="exportarPorStatus('fechado')">💾 Backup – Fechado</button>
+  <button class="btn" onclick="exportarPorStatus('descartado')">💾 Backup – Descartado</button>
+</div>
+
+<div id="contador">📊 Ligações feitas hoje: 0</div>
+
+<div class="clearfix" id="kanban">
+  <div class="column" id="novo"><h3>📥 Novo</h3></div>
+  <div class="column" id="atendimento"><h3>📞 Atendimento</h3></div>
+  <div class="column" id="aguardando"><h3>⏳ Aguardando</h3></div>
+  <div class="column" id="fechado"><h3>✅ Fechado</h3></div>
+  <div class="column" id="descartado"><h3>❌ Descartado</h3></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script>
+const STORAGE_KEY = "leadsKanban";
+const CALL_KEY = "callCounter";
+
+let leads = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+function hojeISO() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function salvarLeads() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+}
+
+function incrementarContador() {
+  const saved = JSON.parse(localStorage.getItem(CALL_KEY)) || { date: hojeISO(), count: 0 };
+  if (saved.date !== hojeISO()) { saved.date = hojeISO(); saved.count = 0; }
+  saved.count++;
+  localStorage.setItem(CALL_KEY, JSON.stringify(saved));
+  document.getElementById("contador").textContent = "📊 Ligações feitas hoje: " + saved.count;
+}
+
+function carregarContador() {
+  const saved = JSON.parse(localStorage.getItem(CALL_KEY)) || { date: hojeISO(), count: 0 };
+  if (saved.date !== hojeISO()) { saved.count = 0; }
+  document.getElementById("contador").textContent = "📊 Ligações feitas hoje: " + saved.count;
+}
+
+function renderKanban() {
+  ["novo", "atendimento", "aguardando", "fechado", "descartado"].forEach(status => {
+    const col = document.getElementById(status);
+    col.innerHTML = "<h3>" + col.querySelector("h3").textContent + "</h3>";
+    leads.filter(l => l.status === status).forEach(l => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.nome = l.nome;
+      card.innerHTML = `
+        <strong>${l.nome}</strong><br>${l.numero}<br>
+        <button onclick="incrementarContador()">📞</button>
+        <button onclick="window.open('https://wa.me/55${l.numero}','_blank')">💬</button>
+      `;
+      col.appendChild(card);
+    });
+    new Sortable(col, {
+      group: "kanban",
+      animation: 150,
+      onEnd: e => {
+        const nome = e.item.dataset.nome;
+        const novoStatus = e.to.id;
+        const lead = leads.find(x => x.nome === nome);
+        if (lead) { lead.status = novoStatus; salvarLeads(); }
+      }
+    });
+  });
+}
+
+function exportarPorStatus(status) {
+  const filtrados = leads.filter(l => l.status === status);
+  const blob = new Blob([JSON.stringify(filtrados, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  const hoje = hojeISO();
+  a.href = URL.createObjectURL(blob);
+  a.download = "leads_" + status + "_" + hoje + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+carregarContador();
+renderKanban();
+</script>
+
+</body>
+</html>
